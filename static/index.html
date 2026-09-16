@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><title>Todo + Notes</title>
+<style>
+:root {
+  --bg: #1a1b26;
+  --surface: #24253a;
+  --border: #333552;
+  --text: #e0e0f0;
+  --text-dim: #8888a8;
+  --pastel-pink: #f5a9b8;
+  --pastel-mint: #a8e6cf;
+  --pastel-lavender: #c3aed6;
+  --pastel-yellow: #fff5ba;
+}
+* { box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', sans-serif;
+  max-width: 700px;
+  margin: 40px auto;
+  padding: 0 20px;
+  background: var(--bg);
+  color: var(--text);
+}
+h1 { color: var(--pastel-lavender); }
+h2 { color: var(--pastel-mint); border-bottom: 1px solid var(--border); padding-bottom: 6px; }
+form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  flex: 1;
+}
+input:focus { outline: none; border-color: var(--pastel-lavender); }
+button {
+  background: var(--pastel-lavender);
+  color: #1a1b26;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 13px;
+}
+button:hover { opacity: 0.85; }
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--surface);
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+}
+.item span:first-child { font-size: 14px; }
+.item.done { opacity: 0.5; }
+.item.done span:first-child { text-decoration: line-through; color: var(--text-dim); }
+.item.pinned { border-color: var(--pastel-yellow); background: #2a2a3a; }
+.item button {
+  background: var(--pastel-mint);
+  margin-left: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+}
+.item button:last-child { background: var(--pastel-pink); }
+</style>
+
+
+</head>
+<body>
+<h1>Todo + Notes</h1>
+<h2>Todos</h2>
+<form id="todo-form">
+  <input type="text" id="todo-text" placeholder="Task" required>
+  <input type="datetime-local" id="todo-due">
+  <button type="submit">Add</button>
+</form>
+<div id="todo-list"></div>
+<h2>Notes</h2>
+<form id="note-form">
+  <input type="text" id="note-content" placeholder="Note" required>
+  <button type="submit">Add</button>
+</form>
+<div id="note-list"></div>
+<script>
+async function loadTodos() {
+  const todos = await (await fetch("/todos")).json();
+  const list = document.getElementById("todo-list"); list.innerHTML = "";
+  todos.forEach(t => {
+    const div = document.createElement("div");
+    div.className = "item" + (t.done ? " done" : "");
+    div.innerHTML = `<span>${t.text} ${t.due_at ? "("+t.due_at.replace("T"," ")+")" : ""}</span>
+      <span><button onclick="toggleDone('${t.id}')">${t.done?"Undo":"Done"}</button>
+      <button onclick="deleteTodo('${t.id}')">Delete</button></span>`;
+    list.appendChild(div);
+  });
+  return todos;
+}
+async function loadNotes() {
+  const notes = await (await fetch("/notes")).json();
+  const list = document.getElementById("note-list"); list.innerHTML = "";
+  notes.forEach(n => {
+    const div = document.createElement("div");
+    div.className = "item" + (n.pinned ? " pinned" : "");
+    div.innerHTML = `<span>${n.content}</span>
+      <span><button onclick="togglePin('${n.id}')">${n.pinned?"Unpin":"Pin"}</button>
+      <button onclick="deleteNote('${n.id}')">Delete</button></span>`;
+    list.appendChild(div);
+  });
+}
+document.getElementById("todo-form").onsubmit = async (e) => {
+  e.preventDefault();
+  await fetch("/todos", {method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({text: document.getElementById("todo-text").value,
+      due_at: document.getElementById("todo-due").value || null})});
+  e.target.reset(); loadTodos();
+};
+document.getElementById("note-form").onsubmit = async (e) => {
+  e.preventDefault();
+  await fetch("/notes", {method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({content: document.getElementById("note-content").value})});
+  e.target.reset(); loadNotes();
+};
+async function toggleDone(id){ await fetch(`/todos/${id}/done`,{method:"PUT"}); loadTodos(); }
+async function deleteTodo(id){ await fetch(`/todos/${id}`,{method:"DELETE"}); loadTodos(); }
+async function togglePin(id){ await fetch(`/notes/${id}/pin`,{method:"PUT"}); loadNotes(); }
+async function deleteNote(id){ await fetch(`/notes/${id}`,{method:"DELETE"}); loadNotes(); }
+setInterval(async () => {
+  const todos = await loadTodos(); const now = new Date();
+  todos.forEach(t => {
+    if (t.due_at && !t.alarm_fired && !t.done && new Date(t.due_at) <= now) {
+      alert(`Reminder: ${t.text}`);
+      fetch(`/todos/${t.id}/alarm-fired`, {method:"PUT"});
+    }
+  });
+}, 15000);
+loadTodos(); loadNotes();
+</script>
+</body>
+</html>

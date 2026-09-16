@@ -1,0 +1,5 @@
+venv/
+__pycache__/
+*.pyc
+todo_notes.db
+.git
