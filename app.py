@@ -20,6 +20,8 @@ def init_db():
         created_at TEXT NOT NULL)""")
     conn.commit(); conn.close()
 
+init_db()
+
 @app.route("/todos", methods=["GET"])
 def get_todos():
     conn = get_db()
@@ -117,5 +119,4 @@ def index():
     return send_from_directory("static", "index.html")
 
 if __name__ == "__main__":
-    init_db()
     app.run(host="0.0.0.0", debug=True)
