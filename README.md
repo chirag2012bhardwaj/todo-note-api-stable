@@ -6,7 +6,7 @@ containerize a real app properly, not just wrap something pre-made.
 
 ## Run it
 
-Pull and run the pre-built image straight from Docker Hub:
+Pull and run the pre-built image straight from Docker Hub using docker-compose.yml above:
 
 ```bash
 docker compose up -d
