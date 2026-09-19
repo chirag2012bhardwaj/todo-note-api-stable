@@ -1,0 +1,11 @@
+services:
+  todo-notes:
+    image: chirag2012/todo-notes-app:latest
+    ports:
+      - "5000:5000"
+    volumes:
+      - todo-notes-data:/app
+    container_name: todo-notes
+
+volumes:
+  todo-notes-data:
